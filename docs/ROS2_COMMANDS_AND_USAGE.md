@@ -208,6 +208,22 @@ ros2 param list /trainros_fusion
 ros2 param get /trainros_fusion output_rate_hz
 ```
 
+运行中调平稳性阈值：
+
+```bash
+ros2 param set /trainros_stability_evaluator warning_threshold 75.0
+ros2 param set /trainros_stability_evaluator alarm_threshold 45.0
+ros2 param set /trainros_stability_evaluator tsi_alarm_value 5.0
+```
+
+查看平稳性算法参数：
+
+```bash
+ros2 param get /trainros_stability_evaluator window_size
+ros2 param get /trainros_stability_evaluator psd_min_hz
+ros2 param get /trainros_stability_evaluator psd_max_hz
+```
+
 作用：
 
 - 检查 launch 和 YAML 参数是否生效。
@@ -388,6 +404,8 @@ ros2 bag play /tmp/trainros_bags/test
 
 ```bash
 ros2 topic echo /train_state
+ros2 topic echo /stability
+ros2 topic echo /diagnostics
 ```
 
 ## 12. 录制功能有什么作用
@@ -423,7 +441,41 @@ Logger 负责记录事件，rosbag2 负责记录数据。
 事件告诉你什么时候出了问题，bag 告诉你当时每个 Topic 的原始数据是什么。
 ```
 
-## 13. 延时观测与低延时优化命令
+## 13. 平稳性评估查看和离线验证
+
+查看当前平稳性输出：
+
+```bash
+ros2 topic echo --once /stability
+```
+
+关注字段：
+
+- `rms_acceleration`：滑动窗口加速度 RMS。
+- `peak_acceleration`：滑动窗口绝对加速度峰值。
+- `psd_value`：`psd_min_hz` 到 `psd_max_hz` 频带内的简化功率谱能量。
+- `tsi`：由 RMS、Peak、PSD 组合得到的工程平稳性指标。
+- `score`：0-100 分，分数越高越平稳。
+- `level`：`normal`、`warning` 或 `alarm`。
+
+查看 Stability diagnostics：
+
+```bash
+ros2 topic echo /diagnostics
+```
+
+其中 `trainros_stability_evaluator` 会输出 `window_samples`、`rms_acceleration`、`peak_acceleration`、`psd_value`、`tsi`、`score` 和 `level`。
+
+离线验证流程：
+
+```bash
+ros2 bag play /tmp/trainros_bags/test
+ros2 topic echo /stability
+```
+
+这样可以用同一段 bag 对比不同阈值、窗口长度和 TSI 权重下的平稳性结果。
+
+## 14. 延时观测与低延时优化命令
 
 查看融合结果发布频率：
 
@@ -469,7 +521,7 @@ ros2 topic echo /diagnostics
 - `kalman_gps_update_count`：GPS 速度观测校正次数。
 - `kalman_laser_update_count`：Laser 距离观测校正次数。
 
-## 14. 为什么 GPS 和 YOLO 不参与主链路强同步
+## 15. 为什么 GPS 和 YOLO 不参与主链路强同步
 
 当前 Fusion 的主链路只对 `/imu/data` 和 `/laser/scan` 做 `ApproximateTime` 同步。原因是：
 
@@ -482,7 +534,7 @@ ros2 topic echo /diagnostics
 
 Fusion 内部还维护一个轻量三维 Kalman Filter，状态量为 `position`、`speed` 和 `acceleration`。IMU 加速度用于高频预测和加速度观测更新，GPS 位置差分得到的速度用于低频校正，Laser 距离作为 `position` 观测校正距离状态。这样可以减少单次 GPS 抖动对 `/train_state.speed` 的影响，同时让 `/train_state.laser_distance` 输出经过滤波后的距离；原始激光值仍可通过 `/laser/scan` 或 `/diagnostics` 中的 `raw_laser_distance` 查看。
 
-## 15. rosbag 默认不录制原始相机图像
+## 16. rosbag 默认不录制原始相机图像
 
 默认 `logging.yaml` 中 `record_camera: false`，并且 `record_topics` 不包含 `/camera/image_raw`。这样做是为了避免原始图像占用大量磁盘带宽，影响高频传感器链路。
 

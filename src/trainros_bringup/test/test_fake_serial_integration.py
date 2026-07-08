@@ -156,6 +156,29 @@ def start_monitor():
     )
 
 
+def start_stability():
+    return subprocess.Popen(
+        [
+            "ros2",
+            "run",
+            "trainros_stability_evaluator",
+            "stability_evaluator_node",
+            "--ros-args",
+            "-p",
+            "window_size:=50",
+            "-p",
+            "min_window_samples:=5",
+            "-p",
+            "sample_rate_hz:=50.0",
+            "-p",
+            "diagnostics_period_ms:=200",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
 def stop_process(process):
     if process.poll() is not None:
         return
@@ -173,7 +196,7 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
     import rclpy
     from diagnostic_msgs.msg import DiagnosticArray
     from sensor_msgs.msg import Imu, LaserScan, NavSatFix, NavSatStatus
-    from trainros_interfaces.msg import TrainState
+    from trainros_interfaces.msg import Stability, TrainState
     from rclpy.qos import QoSProfile, ReliabilityPolicy
 
     ports = FakeSerialPorts()
@@ -186,6 +209,7 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
             start_driver("trainros_gps_driver", "gps_driver_node", ports.gps_port),
             start_driver("trainros_laser_driver", "laser_driver_node", ports.laser_port),
             start_fusion(),
+            start_stability(),
             start_monitor(),
         ]
 
@@ -197,6 +221,7 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
             "laser": None,
             "train_state": None,
             "train_state_count": 0,
+            "stability": None,
             "diagnostics": set(),
             "diagnostic_values": {},
         }
@@ -214,6 +239,11 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
                 received.__setitem__("train_state", msg),
                 received.__setitem__("train_state_count", received["train_state_count"] + 1),
             ),
+            10)
+        node.create_subscription(
+            Stability,
+            "/stability",
+            lambda msg: received.__setitem__("stability", msg),
             10)
 
         def on_diagnostics(msg):
@@ -236,6 +266,7 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
                     "trainros_gps_driver",
                     "trainros_laser_driver",
                     "trainros_fusion",
+                    "trainros_stability_evaluator",
                     "trainros_monitor",
                 }.issubset(
                     received["diagnostics"]
@@ -261,6 +292,12 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
         assert 0.5 < received["train_state"].laser_distance < 2.0
 
         assert received["train_state_count"] >= 5
+        assert received["stability"] is not None
+        assert math.isfinite(received["stability"].rms_acceleration)
+        assert math.isfinite(received["stability"].peak_acceleration)
+        assert math.isfinite(received["stability"].psd_value)
+        assert math.isfinite(received["stability"].tsi)
+        assert 0.0 <= received["stability"].score <= 100.0
         assert {"trainros_imu_driver", "trainros_gps_driver", "trainros_laser_driver"}.issubset(
             received["diagnostics"]
         )
@@ -283,6 +320,10 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
         assert "kalman_imu_update_count" in received["diagnostic_values"]["trainros_fusion"]
         assert "kalman_gps_update_count" in received["diagnostic_values"]["trainros_fusion"]
         assert "kalman_laser_update_count" in received["diagnostic_values"]["trainros_fusion"]
+        assert "trainros_stability_evaluator" in received["diagnostics"]
+        assert "window_samples" in received["diagnostic_values"]["trainros_stability_evaluator"]
+        assert "tsi" in received["diagnostic_values"]["trainros_stability_evaluator"]
+        assert "score" in received["diagnostic_values"]["trainros_stability_evaluator"]
         assert "trainros_monitor" in received["diagnostics"]
         assert "imu_latency_ms" in received["diagnostic_values"]["trainros_monitor"]
         assert "laser_latency_ms" in received["diagnostic_values"]["trainros_monitor"]

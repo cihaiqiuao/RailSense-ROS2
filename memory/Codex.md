@@ -25,6 +25,7 @@
 - `memory/decisions/2026-07-06-code-framework.md`：第一版 ROS2 代码框架决策。
 - `memory/decisions/2026-07-06-integration-diagnostics.md`：集成测试、参数分层和 driver diagnostics 决策。
 - `memory/decisions/2026-07-08-3d-kalman-laser-fusion.md`：三维 Kalman 和 Laser 测距融合决策。
+- `memory/decisions/2026-07-08-stability-rms-psd-tsi.md`：平稳性 RMS、PSD、TSI 算法增强决策。
 - `docs/ARCHITECTURE.md`：Topic、QoS、节点职责和系统结构。
 - `docs/MIGRATION_PLAN.md`：旧工程迁移计划。
 - `docs/ROADMAP.md`：后续版本路线图。
@@ -54,7 +55,7 @@
 - 已完成目录骨架、项目记忆、接口定义、12 个 ROS2 包和基础节点。
 - IMU/GPS/Laser 已接入 Linux 串口 fd 读取、旧协议基础解析、重连和统计。
 - IMU/GPS/Laser 已统一发布 `/diagnostics`。
-- Fusion 已使用 `message_filters::ApproximateTime` 同步 IMU/GPS/Laser；Stability/Logger/Monitor 已从占位改为基础可用逻辑。
+- Fusion 已使用 `message_filters::ApproximateTime` 同步 IMU/GPS/Laser；Stability 已实现滑动 RMS、峰值、简化 PSD、TSI 评分和 diagnostics。
 - Logger 已订阅 `/diagnostics` 和 `/stability`，业务 JSONL 记录串口、丢帧、GPS no-fix、Fusion/Monitor 诊断和平稳性告警事件。
 - Recorder 已用 `Record.action` 启动和取消真实 `ros2 bag record` 子进程。
 - 已将旧工程 `coupler_yolov8_pose_best.pt` 转为 `trainros_yolo_detection/models/coupler_yolov8_pose_best.onnx`。

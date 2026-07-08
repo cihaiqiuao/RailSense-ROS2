@@ -21,7 +21,7 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 - `trainros_camera_driver`：Camera/GStreamer 占位框架，并提供 `video_file_publisher` 将本地 MP4 发布到 `/camera/image_raw`。
 - `trainros_yolo_detection`：YOLO 检测框架，已放入 `coupler_yolov8_pose_best.pt` 和导出的 `coupler_yolov8_pose_best.onnx`，已加入 Python ONNX Runtime 推理入口；缺 OpenCV/onnxruntime 时降级发布 `unknown`。
 - `trainros_fusion`：使用 `message_filters::ApproximateTime` 同步 IMU/Laser，GPS 作为低频校正源，维护 Coupler 最近状态，使用三维 Kalman Filter 估计 position/speed/acceleration，IMU 更新加速度、GPS 校正速度、Laser 校正距离/位置，发布 `/train_state` 和延时 diagnostics。
-- `trainros_stability_evaluator`：RMS、峰值和阈值评估，发布 `/stability`。
+- `trainros_stability_evaluator`：滑动 RMS、峰值、简化 PSD、TSI 评分和阈值评估，发布 `/stability` 和 `/diagnostics`。
 - `trainros_recorder`：`Record.action` server，启动/取消真实 `ros2 bag record` 子进程，默认不录制 `/camera/image_raw`。
 - `trainros_logger`：订阅 `/diagnostics` 和 `/stability`，写业务 JSONL 并发布 `/log_status`。
 - `trainros_monitor`：Linux `/proc` CPU/内存监控、Topic 端到端延时统计、`/system_status` 和 `/diagnostics`。
@@ -40,7 +40,7 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 - Windows `E:` 盘 drvfs 可能限制 `--symlink-install`，正式验证使用 `/tmp/trainros_ws`。
 - `colcon build --symlink-install`：12 个包全部通过。
 - IMU/GPS/Laser parser gtest：全部通过。
-- fake serial 集成测试：自动创建 PTY，启动三路 driver、Fusion 和 Monitor，验证 `/imu/data`、`/gps/fix`、`/laser/scan`、`/train_state`、Fusion 三维 Kalman diagnostics 和 Monitor 延时 diagnostics。
+- fake serial 集成测试：自动创建 PTY，启动三路 driver、Fusion、Stability 和 Monitor，验证 `/imu/data`、`/gps/fix`、`/laser/scan`、`/train_state`、`/stability`、Fusion 三维 Kalman diagnostics、Stability diagnostics 和 Monitor 延时 diagnostics。
 - Logger 冒烟验证：模拟 diagnostics/stability 后，JSONL 记录串口打开、重连、丢帧和平稳性 alarm。
 - Recorder 冒烟验证：Action 启动并取消 `ros2 bag record`，生成 `.db3` 和 `metadata.yaml`。
 - `trainros_system.launch.py` 和 `trainros_fake_serial.launch.py` 已通过 5 秒启动冒烟验证。

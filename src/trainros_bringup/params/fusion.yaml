@@ -26,3 +26,12 @@ trainros_stability_evaluator:
     alarm_threshold: 40.0
     window_size: 250
     rms_alarm_acceleration: 3.0
+    sample_rate_hz: 50.0
+    min_window_samples: 50
+    psd_min_hz: 0.5
+    psd_max_hz: 20.0
+    rms_weight: 1.0
+    peak_weight: 0.3
+    psd_weight: 0.2
+    tsi_alarm_value: 5.0
+    diagnostics_period_ms: 1000
