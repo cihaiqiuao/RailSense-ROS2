@@ -13,13 +13,13 @@ E:\毕业设计\03_代码工程\车钩识别模型代码_整理版\models\traine
 ## 输出模型
 
 ```text
-E:\ros2\TrainROS\src\trainros_yolo_detection\models\coupler_yolov8_pose_best.onnx
+E:\ros2\TrainROS\src\perception\trainros_yolo_detection\models\coupler_yolov8_pose_best.onnx
 ```
 
 同时保留一份 PyTorch 源模型：
 
 ```text
-E:\ros2\TrainROS\src\trainros_yolo_detection\models\coupler_yolov8_pose_best.pt
+E:\ros2\TrainROS\src\perception\trainros_yolo_detection\models\coupler_yolov8_pose_best.pt
 ```
 
 ## 转换参数

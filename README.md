@@ -7,20 +7,16 @@ RailSense-ROS2（工程内部包名 TrainROS）是一个基于 ROS2 Humble 的�
 ```text
 TrainROS/
   src/
-    trainros_interfaces/          # 自定义消息和 Record.action
-    trainros_imu_driver/          # IMU 串口解析，发布 /imu/data
-    trainros_gps_driver/          # GPS RMC 解析，发布 /gps/fix
-    trainros_laser_driver/        # 激光测距解析，发布 /laser/scan
-    trainros_camera_driver/       # Camera/GStreamer 占位框架
-    trainros_yolo_detection/      # YOLO 检测占位框架
-    trainros_fusion/              # IMU/Laser 同步与三维 Kalman 融合，发布 /train_state
-    trainros_stability_evaluator/ # RMS/峰值/PSD/TSI 评估，发布 /stability
-    trainros_recorder/            # Record.action 框架
-    trainros_logger/              # JSONL 日志状态
-    trainros_monitor/             # CPU/内存监控与 diagnostics
-    trainros_bringup/             # launch、参数、RViz、部署配置
+    interfaces/                   # 自定义消息、Action 和接口包
+    drivers/                      # IMU/GPS/Laser/Camera 驱动包
+    perception/                   # YOLO 等视觉感知包
+    estimation/                   # Fusion 和 Stability 状态估计包
+    runtime/                      # Recorder/Logger/Monitor 运行支撑包
+    bringup/                      # launch、参数、RViz、部署配置
   docs/                           # 架构、迁移计划、路线图
-  tools/                          # 伪串口回放和辅助工具
+  tools/replay/                   # 伪串口回放和辅助工具
+  config/                         # rosbag2、RViz 等根级运行配置
+  data/                           # 本地 bag、样例数据和临时数据
   memory/                         # Engramory 风格项目记忆
 ```
 
@@ -41,11 +37,11 @@ TrainROS/
 
 参数已按职责拆分：
 
-- `src/trainros_bringup/params/sensors.yaml`：真实硬件传感器、Camera、YOLO 参数。
-- `src/trainros_bringup/params/sensors_fake_serial.yaml`：伪串口传感器参数。
-- `src/trainros_bringup/params/fusion.yaml`：融合和平稳性参数，包含同步窗口、传感器超时和 Kalman 噪声参数。
-- `src/trainros_bringup/params/logging.yaml`：录制 topic 列表、bag 输出路径和日志参数。
-- `src/trainros_bringup/params/monitor.yaml`：系统监控参数。
+- `src/bringup/trainros_bringup/params/sensors.yaml`：真实硬件传感器、Camera、YOLO 参数。
+- `src/bringup/trainros_bringup/params/sensors_fake_serial.yaml`：伪串口传感器参数。
+- `src/bringup/trainros_bringup/params/fusion.yaml`：融合和平稳性参数，包含同步窗口、传感器超时和 Kalman 噪声参数。
+- `src/bringup/trainros_bringup/params/logging.yaml`：录制 topic 列表、bag 输出路径和日志参数。
+- `src/bringup/trainros_bringup/params/monitor.yaml`：系统监控参数。
 
 启动文件：
 

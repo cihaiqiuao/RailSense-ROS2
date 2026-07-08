@@ -68,7 +68,7 @@ colcon test --packages-select trainros_imu_driver trainros_gps_driver trainros_l
 终端 1：
 
 ```bash
-python3 /mnt/e/ros2/TrainROS/tools/fake_serial_replay.py
+python3 /mnt/e/ros2/TrainROS/tools/replay/fake_serial_replay.py
 ```
 
 该脚本会输出三路伪串口，例如：
@@ -357,7 +357,7 @@ ros2 bag record -o /tmp/trainros_bags/test <record_topics...>
 默认录制 topic 来自：
 
 ```text
-src/trainros_bringup/params/logging.yaml
+src/bringup/trainros_bringup/params/logging.yaml
 ```
 
 当前默认包括：

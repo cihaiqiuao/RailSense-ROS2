@@ -18,7 +18,7 @@
 
 ## 参数
 
-参数位于 `src/trainros_bringup/params/fusion.yaml` 的 `trainros_stability_evaluator`：
+参数位于 `src/bringup/trainros_bringup/params/fusion.yaml` 的 `trainros_stability_evaluator`：
 
 - `sample_rate_hz`
 - `min_window_samples`

@@ -11,7 +11,7 @@
 - IMU parser：`include/trainros_imu_driver/imu_parser.hpp`，测试有效 33 字节帧、错误帧头、错误校验。
 - GPS parser：`include/trainros_gps_driver/gps_parser.hpp`，测试有效 RMC、no-fix RMC、非 RMC 语句。
 - Laser parser：`include/trainros_laser_driver/laser_parser.hpp`，测试有效 12 字节帧、短帧、错帧头。
-- 伪串口工具：`tools/fake_serial_replay.py`，创建 IMU/GPS/Laser 三个 PTY 并循环写样例数据。
+- 伪串口工具：`tools/replay/fake_serial_replay.py`，创建 IMU/GPS/Laser 三个 PTY 并循环写样例数据。
 
 ## 验证
 

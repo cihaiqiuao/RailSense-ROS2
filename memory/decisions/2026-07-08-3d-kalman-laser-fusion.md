@@ -16,7 +16,7 @@
 
 ## 参数
 
-参数位于 `src/trainros_bringup/params/fusion.yaml`：
+参数位于 `src/bringup/trainros_bringup/params/fusion.yaml`：
 
 - `process_noise_position`
 - `process_noise_speed`

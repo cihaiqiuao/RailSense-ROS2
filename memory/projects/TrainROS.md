@@ -14,22 +14,22 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 
 ## 包结构
 
-- `trainros_interfaces`：自定义消息和 `Record.action`。
-- `trainros_imu_driver`：IMU 串口 driver，33 字节帧解析、校验、重连、统计和 diagnostics。
-- `trainros_gps_driver`：GPS/NMEA driver，RMC 解析、fix/no-fix、重连、统计和 diagnostics。
-- `trainros_laser_driver`：激光测距 driver，`0xAA` 12 字节帧解析、重连、统计和 diagnostics。
-- `trainros_camera_driver`：Camera/GStreamer 占位框架，并提供 `video_file_publisher` 将本地 MP4 发布到 `/camera/image_raw`。
-- `trainros_yolo_detection`：YOLO 检测框架，已放入 `coupler_yolov8_pose_best.pt` 和导出的 `coupler_yolov8_pose_best.onnx`，已加入 Python ONNX Runtime 推理入口；缺 OpenCV/onnxruntime 时降级发布 `unknown`。
-- `trainros_fusion`：使用 `message_filters::ApproximateTime` 同步 IMU/Laser，GPS 作为低频校正源，维护 Coupler 最近状态，使用三维 Kalman Filter 估计 position/speed/acceleration，IMU 更新加速度、GPS 校正速度、Laser 校正距离/位置，发布 `/train_state` 和延时 diagnostics。
-- `trainros_stability_evaluator`：滑动 RMS、峰值、简化 PSD、TSI 评分和阈值评估，发布 `/stability` 和 `/diagnostics`。
-- `trainros_recorder`：`Record.action` server，启动/取消真实 `ros2 bag record` 子进程，默认不录制 `/camera/image_raw`。
-- `trainros_logger`：订阅 `/diagnostics` 和 `/stability`，写业务 JSONL 并发布 `/log_status`。
-- `trainros_monitor`：Linux `/proc` CPU/内存监控、Topic 端到端延时统计、`/system_status` 和 `/diagnostics`。
-- `trainros_bringup`：launch、参数、RViz、systemd 和部署配置。
+- `src/interfaces/trainros_interfaces`：自定义消息和 `Record.action`。
+- `src/drivers/trainros_imu_driver`：IMU 串口 driver，33 字节帧解析、校验、重连、统计和 diagnostics。
+- `src/drivers/trainros_gps_driver`：GPS/NMEA driver，RMC 解析、fix/no-fix、重连、统计和 diagnostics。
+- `src/drivers/trainros_laser_driver`：激光测距 driver，`0xAA` 12 字节帧解析、重连、统计和 diagnostics。
+- `src/drivers/trainros_camera_driver`：Camera/GStreamer 占位框架，并提供 `video_file_publisher` 将本地 MP4 发布到 `/camera/image_raw`。
+- `src/perception/trainros_yolo_detection`：YOLO 检测框架，已放入 `coupler_yolov8_pose_best.pt` 和导出的 `coupler_yolov8_pose_best.onnx`，已加入 Python ONNX Runtime 推理入口；缺 OpenCV/onnxruntime 时降级发布 `unknown`。
+- `src/estimation/trainros_fusion`：使用 `message_filters::ApproximateTime` 同步 IMU/Laser，GPS 作为低频校正源，维护 Coupler 最近状态，使用三维 Kalman Filter 估计 position/speed/acceleration，IMU 更新加速度、GPS 校正速度、Laser 校正距离/位置，发布 `/train_state` 和延时 diagnostics。
+- `src/estimation/trainros_stability_evaluator`：滑动 RMS、峰值、简化 PSD、TSI 评分和阈值评估，发布 `/stability` 和 `/diagnostics`。
+- `src/runtime/trainros_recorder`：`Record.action` server，启动/取消真实 `ros2 bag record` 子进程，默认不录制 `/camera/image_raw`。
+- `src/runtime/trainros_logger`：订阅 `/diagnostics` 和 `/stability`，写业务 JSONL 并发布 `/log_status`。
+- `src/runtime/trainros_monitor`：Linux `/proc` CPU/内存监控、Topic 端到端延时统计、`/system_status` 和 `/diagnostics`。
+- `src/bringup/trainros_bringup`：launch、参数、RViz、systemd 和部署配置。
 
 ## 参数和启动
 
-- 参数已拆分为 `sensors.yaml`、`sensors_fake_serial.yaml`、`fusion.yaml`、`logging.yaml`、`monitor.yaml`。
+- 参数位于 `src/bringup/trainros_bringup/params/`，已拆分为 `sensors.yaml`、`sensors_fake_serial.yaml`、`fusion.yaml`、`logging.yaml`、`monitor.yaml`。
 - `trainros_system.launch.py`：硬件模式，加载真实串口默认参数。
 - `trainros_fake_serial.launch.py`：伪串口模式，可通过 `imu_port`、`gps_port`、`laser_port` 覆盖端口。
 - Topic 名和节点名保持不变。
