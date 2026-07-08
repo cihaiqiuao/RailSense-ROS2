@@ -10,11 +10,13 @@ trainros_fusion:
     coupler_timeout_ms: 1000
     sensor_timeout_ms: 500
 
-    # 轻量 Kalman 融合：状态量为 speed 和 acceleration。
-    # IMU 提供高频加速度观测，GPS 提供低频速度校正。
+    # 三维 Kalman 融合：状态量为 position、speed 和 acceleration。
+    # Laser 提供距离/位置观测，GPS 提供低频速度校正，IMU 提供高频加速度观测。
     enable_kalman_filter: true
+    process_noise_position: 0.1
     process_noise_speed: 0.2
     process_noise_acceleration: 1.0
+    laser_distance_measurement_noise: 0.05
     gps_speed_measurement_noise: 0.5
     imu_acceleration_measurement_noise: 0.2
 

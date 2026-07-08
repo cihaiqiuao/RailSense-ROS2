@@ -42,7 +42,7 @@ trainros_stability_evaluator
 | `trainros_laser_driver` | 激光串口解析、距离异常检测 | `/laser/scan` |
 | `trainros_camera_driver` | GStreamer/image_transport 图像发布 | `/camera/image_raw` |
 | `trainros_yolo_detection` | OpenCV 预处理、ONNX Runtime 推理、NMS、姿态状态识别 | `/coupler_detection` |
-| `trainros_fusion` | IMU/Laser ApproximateTime 同步、GPS 低频速度校正、轻量 Kalman 融合 | `/train_state` |
+| `trainros_fusion` | IMU/Laser ApproximateTime 同步、GPS 低频速度校正、Laser 距离观测、三维 Kalman 融合 | `/train_state` |
 | `trainros_stability_evaluator` | RMS、峰值、PSD、TSI 与阈值评估 | `/stability` |
 | `trainros_recorder` | 录制 Action 与 rosbag2 控制 | `Record.action` |
 | `trainros_logger` | 异步日志、JSONL、轮转、WAL 风格恢复 | `/log_status` |

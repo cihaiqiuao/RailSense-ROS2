@@ -257,7 +257,8 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
 
         assert received["train_state"] is not None
         assert not math.isclose(received["train_state"].acceleration, 0.0)
-        assert math.isclose(received["train_state"].laser_distance, 1.234, rel_tol=0.0, abs_tol=1e-3)
+        assert math.isfinite(received["train_state"].laser_distance)
+        assert 0.5 < received["train_state"].laser_distance < 2.0
 
         assert received["train_state_count"] >= 5
         assert {"trainros_imu_driver", "trainros_gps_driver", "trainros_laser_driver"}.issubset(
@@ -269,10 +270,19 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
         assert "state_latency_ms" in received["diagnostic_values"]["trainros_fusion"]
         assert received["diagnostic_values"]["trainros_fusion"].get("kalman_enabled") == "true"
         assert received["diagnostic_values"]["trainros_fusion"].get("kalman_initialized") == "true"
+        assert "kalman_position" in received["diagnostic_values"]["trainros_fusion"]
         assert "kalman_speed" in received["diagnostic_values"]["trainros_fusion"]
         assert "kalman_acceleration" in received["diagnostic_values"]["trainros_fusion"]
+        assert "raw_laser_distance" in received["diagnostic_values"]["trainros_fusion"]
+        assert math.isclose(
+            float(received["diagnostic_values"]["trainros_fusion"]["raw_laser_distance"]),
+            1.234,
+            rel_tol=0.0,
+            abs_tol=1e-3,
+        )
         assert "kalman_imu_update_count" in received["diagnostic_values"]["trainros_fusion"]
         assert "kalman_gps_update_count" in received["diagnostic_values"]["trainros_fusion"]
+        assert "kalman_laser_update_count" in received["diagnostic_values"]["trainros_fusion"]
         assert "trainros_monitor" in received["diagnostics"]
         assert "imu_latency_ms" in received["diagnostic_values"]["trainros_monitor"]
         assert "laser_latency_ms" in received["diagnostic_values"]["trainros_monitor"]

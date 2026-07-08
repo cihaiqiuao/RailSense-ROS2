@@ -24,6 +24,7 @@
 - `memory/decisions/2026-07-06-initial-framework.md`：初始目录和记忆架构决策。
 - `memory/decisions/2026-07-06-code-framework.md`：第一版 ROS2 代码框架决策。
 - `memory/decisions/2026-07-06-integration-diagnostics.md`：集成测试、参数分层和 driver diagnostics 决策。
+- `memory/decisions/2026-07-08-3d-kalman-laser-fusion.md`：三维 Kalman 和 Laser 测距融合决策。
 - `docs/ARCHITECTURE.md`：Topic、QoS、节点职责和系统结构。
 - `docs/MIGRATION_PLAN.md`：旧工程迁移计划。
 - `docs/ROADMAP.md`：后续版本路线图。
@@ -62,7 +63,7 @@
 - 参数已拆分为 `sensors.yaml`、`sensors_fake_serial.yaml`、`fusion.yaml`、`logging.yaml`、`monitor.yaml`。
 - 已新增 fake serial 集成测试，覆盖伪串口到 ROS topic、Fusion `/train_state` 和 diagnostics 的端到端链路。
 - Fusion 已优化为 IMU/Laser 高频同步、GPS 低频校正、Coupler 最近值缓存；Monitor 已增加 Topic 延时 diagnostics。
-- Fusion 已加入轻量 Kalman Filter，状态量为 speed/acceleration，IMU 高频更新、GPS 低频校正。
+- Fusion 已加入三维 Kalman Filter，状态量为 position/speed/acceleration，IMU 更新加速度、GPS 校正速度、Laser 校正距离/位置。
 - Recorder 默认不录制 `/camera/image_raw`，可用 `record_camera:=true` 开启原始图像录制。
 - ROS2 Humble/colcon 已在 `Ubuntu-22.04` WSL 中可用；验证工作区使用 `/tmp/trainros_ws`。
 - 12 个包构建通过；parser gtest 和 fake serial 集成测试通过。

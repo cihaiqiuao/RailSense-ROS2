@@ -20,7 +20,7 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 - `trainros_laser_driver`：激光测距 driver，`0xAA` 12 字节帧解析、重连、统计和 diagnostics。
 - `trainros_camera_driver`：Camera/GStreamer 占位框架，并提供 `video_file_publisher` 将本地 MP4 发布到 `/camera/image_raw`。
 - `trainros_yolo_detection`：YOLO 检测框架，已放入 `coupler_yolov8_pose_best.pt` 和导出的 `coupler_yolov8_pose_best.onnx`，已加入 Python ONNX Runtime 推理入口；缺 OpenCV/onnxruntime 时降级发布 `unknown`。
-- `trainros_fusion`：使用 `message_filters::ApproximateTime` 同步 IMU/Laser，GPS 作为低频校正源，维护 Coupler 最近状态，使用轻量 Kalman Filter 估计 speed/acceleration，发布 `/train_state` 和延时 diagnostics。
+- `trainros_fusion`：使用 `message_filters::ApproximateTime` 同步 IMU/Laser，GPS 作为低频校正源，维护 Coupler 最近状态，使用三维 Kalman Filter 估计 position/speed/acceleration，IMU 更新加速度、GPS 校正速度、Laser 校正距离/位置，发布 `/train_state` 和延时 diagnostics。
 - `trainros_stability_evaluator`：RMS、峰值和阈值评估，发布 `/stability`。
 - `trainros_recorder`：`Record.action` server，启动/取消真实 `ros2 bag record` 子进程，默认不录制 `/camera/image_raw`。
 - `trainros_logger`：订阅 `/diagnostics` 和 `/stability`，写业务 JSONL 并发布 `/log_status`。
@@ -40,7 +40,7 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 - Windows `E:` 盘 drvfs 可能限制 `--symlink-install`，正式验证使用 `/tmp/trainros_ws`。
 - `colcon build --symlink-install`：12 个包全部通过。
 - IMU/GPS/Laser parser gtest：全部通过。
-- fake serial 集成测试：自动创建 PTY，启动三路 driver、Fusion 和 Monitor，验证 `/imu/data`、`/gps/fix`、`/laser/scan`、`/train_state`、Fusion Kalman diagnostics 和 Monitor 延时 diagnostics。
+- fake serial 集成测试：自动创建 PTY，启动三路 driver、Fusion 和 Monitor，验证 `/imu/data`、`/gps/fix`、`/laser/scan`、`/train_state`、Fusion 三维 Kalman diagnostics 和 Monitor 延时 diagnostics。
 - Logger 冒烟验证：模拟 diagnostics/stability 后，JSONL 记录串口打开、重连、丢帧和平稳性 alarm。
 - Recorder 冒烟验证：Action 启动并取消 `ros2 bag record`，生成 `.db3` 和 `metadata.yaml`。
 - `trainros_system.launch.py` 和 `trainros_fake_serial.launch.py` 已通过 5 秒启动冒烟验证。
@@ -66,4 +66,4 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 1. 在真实 RK3588/Ubuntu 环境接入 `/dev/ttyUSB0`、`/dev/ttyS9`、`/dev/ttyS0` 做硬件联调并观察延时 diagnostics。
 2. 接入 Camera/GStreamer 和 image_transport。
 3. 接入 YOLO/ONNX Runtime/TensorRT。
-4. 将当前轻量 Kalman 扩展为完整 EKF/多维状态估计，并完善 PSD/TSI 和 RViz。
+4. 将当前三维 Kalman 扩展为完整 EKF/多传感器状态估计，并完善 PSD/TSI 和 RViz。

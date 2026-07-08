@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <memory>
@@ -71,8 +72,10 @@ public:
     enable_kalman_filter_ = declare_parameter<bool>("enable_kalman_filter", true);
     process_noise_speed_ = declare_parameter<double>("process_noise_speed", 0.2);
     process_noise_acceleration_ = declare_parameter<double>("process_noise_acceleration", 1.0);
+    process_noise_position_ = declare_parameter<double>("process_noise_position", 0.1);
     gps_speed_measurement_noise_ = declare_parameter<double>("gps_speed_measurement_noise", 0.5);
     imu_acceleration_measurement_noise_ = declare_parameter<double>("imu_acceleration_measurement_noise", 0.2);
+    laser_distance_measurement_noise_ = declare_parameter<double>("laser_distance_measurement_noise", 0.05);
 
     publish_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     diagnostics_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -148,7 +151,11 @@ private:
     has_imu_ = true;
 
     if (!laser->ranges.empty() && std::isfinite(laser->ranges.front())) {
-      laser_distance_ = laser->ranges.front();
+      const double raw_laser_distance = laser->ranges.front();
+      raw_laser_distance_ = raw_laser_distance;
+      update_motion_filter_with_laser(raw_laser_distance);
+      laser_distance_ = enable_kalman_filter_ ? static_cast<float>(kf_position_) :
+        static_cast<float>(raw_laser_distance);
       last_laser_stamp_ = laser->header.stamp;
       has_laser_ = true;
     }
@@ -202,17 +209,68 @@ private:
       return;
     }
 
+    kf_position_ += kf_speed_ * dt + 0.5 * kf_acceleration_ * dt * dt;
     kf_speed_ += kf_acceleration_ * dt;
 
-    const double p00 = kf_p00_ + dt * (kf_p10_ + kf_p01_) + dt * dt * kf_p11_ +
-      process_noise_speed_ * dt;
-    const double p01 = kf_p01_ + dt * kf_p11_;
-    const double p10 = kf_p10_ + dt * kf_p11_;
-    const double p11 = kf_p11_ + process_noise_acceleration_ * dt;
-    kf_p00_ = p00;
-    kf_p01_ = p01;
-    kf_p10_ = p10;
-    kf_p11_ = p11;
+    const std::array<std::array<double, 3>, 3> f {{
+      {{1.0, dt, 0.5 * dt * dt}},
+      {{0.0, 1.0, dt}},
+      {{0.0, 0.0, 1.0}},
+    }};
+    std::array<std::array<double, 3>, 3> predicted {};
+    for (std::size_t r = 0; r < 3; ++r) {
+      for (std::size_t c = 0; c < 3; ++c) {
+        for (std::size_t i = 0; i < 3; ++i) {
+          for (std::size_t j = 0; j < 3; ++j) {
+            predicted[r][c] += f[r][i] * kf_p_[i][j] * f[c][j];
+          }
+        }
+      }
+    }
+    predicted[0][0] += process_noise_position_ * dt;
+    predicted[1][1] += process_noise_speed_ * dt;
+    predicted[2][2] += process_noise_acceleration_ * dt;
+    kf_p_ = predicted;
+  }
+
+  void update_motion_filter_scalar(
+    const std::array<double, 3> & h,
+    const double measurement,
+    const double measurement_noise)
+  {
+    std::array<double, 3> ph {};
+    for (std::size_t r = 0; r < 3; ++r) {
+      for (std::size_t c = 0; c < 3; ++c) {
+        ph[r] += kf_p_[r][c] * h[c];
+      }
+    }
+
+    double predicted_measurement = h[0] * kf_position_ + h[1] * kf_speed_ + h[2] * kf_acceleration_;
+    double s = measurement_noise;
+    for (std::size_t i = 0; i < 3; ++i) {
+      s += h[i] * ph[i];
+    }
+    if (s <= 0.0) {
+      return;
+    }
+
+    const double innovation = measurement - predicted_measurement;
+    std::array<double, 3> k {};
+    for (std::size_t i = 0; i < 3; ++i) {
+      k[i] = ph[i] / s;
+    }
+
+    kf_position_ += k[0] * innovation;
+    kf_speed_ += k[1] * innovation;
+    kf_acceleration_ += k[2] * innovation;
+
+    std::array<std::array<double, 3>, 3> updated {};
+    for (std::size_t r = 0; r < 3; ++r) {
+      for (std::size_t c = 0; c < 3; ++c) {
+        updated[r][c] = kf_p_[r][c] - k[r] * ph[c];
+      }
+    }
+    kf_p_ = updated;
   }
 
   void update_motion_filter_with_imu(
@@ -237,24 +295,10 @@ private:
       last_filter_stamp_ = stamp;
     }
 
-    const double innovation = measured_acceleration - kf_acceleration_;
-    const double s = kf_p11_ + imu_acceleration_measurement_noise_;
-    if (s <= 0.0) {
-      return;
-    }
-    const double k0 = kf_p01_ / s;
-    const double k1 = kf_p11_ / s;
-    kf_speed_ += k0 * innovation;
-    kf_acceleration_ += k1 * innovation;
-
-    const double p00 = kf_p00_ - k0 * kf_p10_;
-    const double p01 = kf_p01_ - k0 * kf_p11_;
-    const double p10 = kf_p10_ - k1 * kf_p10_;
-    const double p11 = kf_p11_ - k1 * kf_p11_;
-    kf_p00_ = p00;
-    kf_p01_ = p01;
-    kf_p10_ = p10;
-    kf_p11_ = p11;
+    update_motion_filter_scalar(
+      std::array<double, 3> {0.0, 0.0, 1.0},
+      measured_acceleration,
+      imu_acceleration_measurement_noise_);
     ++kf_imu_update_count_;
   }
 
@@ -268,25 +312,33 @@ private:
       kf_speed_ = measured_speed;
     }
 
-    const double innovation = measured_speed - kf_speed_;
-    const double s = kf_p00_ + gps_speed_measurement_noise_;
-    if (s <= 0.0) {
+    update_motion_filter_scalar(
+      std::array<double, 3> {0.0, 1.0, 0.0},
+      measured_speed,
+      gps_speed_measurement_noise_);
+    ++kf_gps_update_count_;
+  }
+
+  void update_motion_filter_with_laser(const double measured_distance)
+  {
+    if (!enable_kalman_filter_) {
       return;
     }
-    const double k0 = kf_p00_ / s;
-    const double k1 = kf_p10_ / s;
-    kf_speed_ += k0 * innovation;
-    kf_acceleration_ += k1 * innovation;
+    if (!kf_initialized_) {
+      kf_initialized_ = true;
+      kf_position_ = measured_distance;
+    }
+    if (!kf_has_laser_measurement_) {
+      kf_has_laser_measurement_ = true;
+      kf_position_ = measured_distance;
+      kf_p_[0][0] = laser_distance_measurement_noise_;
+    }
 
-    const double p00 = kf_p00_ - k0 * kf_p00_;
-    const double p01 = kf_p01_ - k0 * kf_p01_;
-    const double p10 = kf_p10_ - k1 * kf_p00_;
-    const double p11 = kf_p11_ - k1 * kf_p01_;
-    kf_p00_ = p00;
-    kf_p01_ = p01;
-    kf_p10_ = p10;
-    kf_p11_ = p11;
-    ++kf_gps_update_count_;
+    update_motion_filter_scalar(
+      std::array<double, 3> {1.0, 0.0, 0.0},
+      measured_distance,
+      laser_distance_measurement_noise_);
+    ++kf_laser_update_count_;
   }
 
   double age_ms(const rclcpp::Time & stamp, const rclcpp::Time & current) const
@@ -378,11 +430,15 @@ private:
       add_key_value(status.values, "state_latency_ms", std::to_string(last_state_latency_ms_));
       add_key_value(status.values, "kalman_enabled", enable_kalman_filter_ ? "true" : "false");
       add_key_value(status.values, "kalman_initialized", kf_initialized_ ? "true" : "false");
+      add_key_value(status.values, "kalman_has_laser_measurement", kf_has_laser_measurement_ ? "true" : "false");
+      add_key_value(status.values, "kalman_position", std::to_string(kf_position_));
       add_key_value(status.values, "kalman_speed", std::to_string(kf_speed_));
       add_key_value(status.values, "kalman_acceleration", std::to_string(kf_acceleration_));
       add_key_value(status.values, "raw_gps_speed", std::to_string(raw_gps_speed_));
+      add_key_value(status.values, "raw_laser_distance", std::to_string(raw_laser_distance_));
       add_key_value(status.values, "kalman_imu_update_count", std::to_string(kf_imu_update_count_));
       add_key_value(status.values, "kalman_gps_update_count", std::to_string(kf_gps_update_count_));
+      add_key_value(status.values, "kalman_laser_update_count", std::to_string(kf_laser_update_count_));
       add_key_value(
         status.values,
         "dropped_due_to_stale_sensor",
@@ -408,8 +464,10 @@ private:
   bool enable_kalman_filter_ = true;
   double process_noise_speed_ = 0.2;
   double process_noise_acceleration_ = 1.0;
+  double process_noise_position_ = 0.1;
   double gps_speed_measurement_noise_ = 0.5;
   double imu_acceleration_measurement_noise_ = 0.2;
+  double laser_distance_measurement_noise_ = 0.05;
   float speed_ = 0.0F;
   float acceleration_ = 0.0F;
   double roll_ = 0.0;
@@ -423,19 +481,24 @@ private:
   bool has_laser_ = false;
   bool has_coupler_ = false;
   bool kf_initialized_ = false;
+  bool kf_has_laser_measurement_ = false;
   uint64_t imu_laser_sync_count_ = 0;
   uint64_t published_count_ = 0;
   uint64_t dropped_due_to_stale_sensor_ = 0;
   uint64_t kf_imu_update_count_ = 0;
   uint64_t kf_gps_update_count_ = 0;
+  uint64_t kf_laser_update_count_ = 0;
   double last_state_latency_ms_ = -1.0;
   double raw_gps_speed_ = 0.0;
+  double raw_laser_distance_ = 0.0;
+  double kf_position_ = 0.0;
   double kf_speed_ = 0.0;
   double kf_acceleration_ = 0.0;
-  double kf_p00_ = 10.0;
-  double kf_p01_ = 0.0;
-  double kf_p10_ = 0.0;
-  double kf_p11_ = 10.0;
+  std::array<std::array<double, 3>, 3> kf_p_ {{
+    {{10.0, 0.0, 0.0}},
+    {{0.0, 10.0, 0.0}},
+    {{0.0, 0.0, 10.0}},
+  }};
   std::string coupler_status_ = "unknown";
   rclcpp::Time last_imu_stamp_;
   rclcpp::Time last_laser_stamp_;

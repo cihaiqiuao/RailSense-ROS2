@@ -461,10 +461,13 @@ ros2 topic echo /diagnostics
 - `state_latency_ms`：融合状态使用的最近传感器时间戳到当前发布时刻的延时。
 - `dropped_due_to_stale_sensor`：因为 IMU 或 Laser 数据过旧而被统计为 stale 的次数。
 - `kalman_enabled`：是否启用轻量 Kalman Filter。
+- `kalman_position`：Kalman 当前估计的距离/位置状态。
 - `kalman_speed`：Kalman 当前估计的速度。
 - `kalman_acceleration`：Kalman 当前估计的加速度。
+- `raw_laser_distance`：Laser 原始测距值，单位为米。
 - `kalman_imu_update_count`：IMU 加速度观测更新次数。
 - `kalman_gps_update_count`：GPS 速度观测校正次数。
+- `kalman_laser_update_count`：Laser 距离观测校正次数。
 
 ## 14. 为什么 GPS 和 YOLO 不参与主链路强同步
 
@@ -477,7 +480,7 @@ ros2 topic echo /diagnostics
 
 因此 GPS 作为低频校正源，YOLO 车钩状态作为最近值缓存。这样 `/train_state` 可以稳定按 50Hz 发布，同时仍然保留 GPS 速度估计和车钩状态。
 
-Fusion 内部还维护一个轻量 Kalman Filter，状态量为 `speed` 和 `acceleration`。IMU 加速度用于高频预测和加速度观测更新，GPS 位置差分得到的速度用于低频校正。这样可以减少单次 GPS 抖动对 `/train_state.speed` 的影响，同时保持 IMU 高频响应。
+Fusion 内部还维护一个轻量三维 Kalman Filter，状态量为 `position`、`speed` 和 `acceleration`。IMU 加速度用于高频预测和加速度观测更新，GPS 位置差分得到的速度用于低频校正，Laser 距离作为 `position` 观测校正距离状态。这样可以减少单次 GPS 抖动对 `/train_state.speed` 的影响，同时让 `/train_state.laser_distance` 输出经过滤波后的距离；原始激光值仍可通过 `/laser/scan` 或 `/diagnostics` 中的 `raw_laser_distance` 查看。
 
 ## 15. rosbag 默认不录制原始相机图像
 
