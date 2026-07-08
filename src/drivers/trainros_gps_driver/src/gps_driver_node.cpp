@@ -140,7 +140,7 @@ public:
       std::bind(&GpsDriverNode::publish_diagnostics, this),
       diagnostics_group_);
 
-    RCLCPP_INFO(get_logger(), "GPS driver started, port: %s", port_.c_str());
+    RCLCPP_INFO(get_logger(), "GPS driver 已启动，端口：%s", port_.c_str());
   }
 
 private:
@@ -158,12 +158,12 @@ private:
     last_reconnect_ = now_time;
     ++reconnect_count_;
     if (!serial_.open_port(port_, baud_rate_)) {
-      last_error_ = "open_failed";
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "GPS serial open failed: %s", port_.c_str());
+      last_error_ = "打开串口失败";
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "GPS serial 打开失败：%s", port_.c_str());
       return;
     }
     last_error_.clear();
-    RCLCPP_INFO(get_logger(), "GPS serial opened: %s", port_.c_str());
+    RCLCPP_INFO(get_logger(), "GPS serial 已打开：%s", port_.c_str());
   }
 
   void poll_serial()
@@ -184,7 +184,7 @@ private:
     }
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
       last_error_ = std::strerror(errno);
-      RCLCPP_WARN(get_logger(), "GPS serial read failed, reconnecting: %s", std::strerror(errno));
+      RCLCPP_WARN(get_logger(), "GPS serial 读取失败，准备重连：%s", std::strerror(errno));
       serial_.close_port();
     }
   }
@@ -251,16 +251,16 @@ private:
     status.hardware_id = port_;
     if (!serial_.is_open()) {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR;
-      status.message = "serial_closed";
+      status.message = "serial 未打开";
     } else if (valid_frames_ == 0) {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-      status.message = "waiting_for_rmc";
+      status.message = "等待 GPS RMC 数据";
     } else if (!has_valid_fix_) {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-      status.message = "no_fix";
+      status.message = "GPS 暂无定位";
     } else {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
-      status.message = "ok";
+      status.message = "GPS 数据正常";
     }
 
     add_key_value(status.values, "serial_open", serial_.is_open() ? "true" : "false");

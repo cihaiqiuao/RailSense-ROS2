@@ -137,7 +137,8 @@ private:
     status.level = last_metrics_.alarm ? diagnostic_msgs::msg::DiagnosticStatus::ERROR :
       (last_metrics_.warning ? diagnostic_msgs::msg::DiagnosticStatus::WARN :
       diagnostic_msgs::msg::DiagnosticStatus::OK);
-    status.message = last_metrics_.level;
+    status.message = last_metrics_.alarm ? "平稳性报警" :
+      (last_metrics_.warning ? "平稳性预警" : "平稳性正常");
     add_key_value(status.values, "window_samples", std::to_string(last_metrics_.sample_count));
     add_key_value(status.values, "rms_acceleration", std::to_string(last_metrics_.rms_acceleration));
     add_key_value(status.values, "peak_acceleration", std::to_string(last_metrics_.peak_acceleration));

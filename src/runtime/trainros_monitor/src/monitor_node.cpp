@@ -135,7 +135,7 @@ public:
     const auto period = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::duration<double>(1.0 / publish_rate_hz_));
     timer_ = create_wall_timer(period, std::bind(&MonitorNode::publish_status, this), publish_group_);
-    RCLCPP_INFO(get_logger(), "Monitor started, publish rate %.1f Hz", publish_rate_hz_);
+    RCLCPP_INFO(get_logger(), "Monitor 已启动，发布频率 %.1f Hz", publish_rate_hz_);
   }
 
 private:
@@ -204,7 +204,7 @@ private:
       diag.level = stale ?
         diagnostic_msgs::msg::DiagnosticStatus::WARN :
         diagnostic_msgs::msg::DiagnosticStatus::OK;
-      diag.message = stale ? "topic_latency_stale_or_missing" : "ok";
+      diag.message = stale ? "Topic 延时数据超时或缺失" : "系统监控正常";
 
       add_latency_values(diag, "imu", imu_latency_, status.header.stamp);
       add_latency_values(diag, "gps", gps_latency_, status.header.stamp);

@@ -126,7 +126,7 @@ class YoloDetectionNode(Node):
             self.on_image,
             rclpy.qos.QoSProfile(depth=5, reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT),
         )
-        self.get_logger().info("YOLO detection node started")
+        self.get_logger().info("YOLO detection node 已启动")
 
     def load_model(self):
         if cv2 is None:

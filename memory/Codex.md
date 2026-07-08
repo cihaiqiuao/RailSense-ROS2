@@ -27,6 +27,7 @@
 - `memory/decisions/2026-07-08-3d-kalman-laser-fusion.md`：三维 Kalman 和 Laser 测距融合决策。
 - `memory/decisions/2026-07-08-stability-rms-psd-tsi.md`：平稳性 RMS、PSD、TSI 算法增强决策。
 - `memory/decisions/2026-07-08-layered-source-layout.md`：源码目录按职责分层重构决策。
+- `memory/decisions/2026-07-08-chinese-runtime-logs.md`：运行时日志中文化决策。
 - `docs/ARCHITECTURE.md`：Topic、QoS、节点职责和系统结构。
 - `docs/MIGRATION_PLAN.md`：旧工程迁移计划。
 - `docs/ROADMAP.md`：后续版本路线图。
@@ -56,6 +57,7 @@
 
 - 已完成目录骨架、项目记忆、接口定义、12 个 ROS2 包和基础节点。
 - `src` 已按 `interfaces/drivers/perception/estimation/runtime/bringup` 分层，包名、节点名和 Topic 名保持不变。
+- 运行时 `RCLCPP_*` 日志和 `/diagnostics` 的人类可读 message 默认中文，机器可解析字段仍保留英文标识。
 - IMU/GPS/Laser 已接入 Linux 串口 fd 读取、旧协议基础解析、重连和统计。
 - IMU/GPS/Laser 已统一发布 `/diagnostics`。
 - Fusion 已使用 `message_filters::ApproximateTime` 同步 IMU/GPS/Laser；Stability 已实现滑动 RMS、峰值、简化 PSD、TSI 评分和 diagnostics。

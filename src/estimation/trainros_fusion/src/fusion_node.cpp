@@ -127,7 +127,7 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "Fusion started, output %.1f Hz, IMU/Laser sync window %d ms",
+      "Fusion 已启动，输出频率 %.1f Hz，IMU/Laser 同步窗口 %d ms",
       output_rate_hz_,
       sync_slop_ms_);
   }
@@ -404,18 +404,18 @@ private:
 
       if (imu_laser_sync_count_ == 0) {
         status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-        status.message = "waiting_for_imu_laser_sync";
+        status.message = "等待 IMU/Laser 同步数据";
       } else if (gps_age < 0.0 || gps_age > static_cast<double>(gps_timeout_ms_)) {
         status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-        status.message = "gps_stale";
+        status.message = "GPS 数据超时";
       } else {
         status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
-        status.message = "ok";
+        status.message = "融合状态正常";
       }
 
       if (has_coupler_ && coupler_age > static_cast<double>(coupler_timeout_ms_)) {
         status.level = std::max<int8_t>(status.level, diagnostic_msgs::msg::DiagnosticStatus::WARN);
-        status.message = "coupler_stale";
+        status.message = "Coupler 检测结果超时";
       }
 
       add_key_value(status.values, "imu_laser_sync_count", std::to_string(imu_laser_sync_count_));

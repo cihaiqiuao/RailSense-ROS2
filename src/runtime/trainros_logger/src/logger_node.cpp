@@ -86,7 +86,7 @@ public:
       std::bind(&LoggerNode::publish_status, this),
       status_group_);
 
-    write_event("logger", "info", "logger_started", "trainros_logger", {{"log_path", log_path_}});
+    write_event("logger", "info", "logger_started", "Logger 节点已启动", {{"log_path", log_path_}});
     RCLCPP_INFO(get_logger(), "Logger 已启动，日志目录：%s", log_dir_.c_str());
   }
 
