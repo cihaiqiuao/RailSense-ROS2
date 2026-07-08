@@ -68,6 +68,11 @@ public:
     gps_timeout_ms_ = declare_parameter<int>("gps_timeout_ms", 1000);
     coupler_timeout_ms_ = declare_parameter<int>("coupler_timeout_ms", 1000);
     sensor_timeout_ms_ = declare_parameter<int>("sensor_timeout_ms", 500);
+    enable_kalman_filter_ = declare_parameter<bool>("enable_kalman_filter", true);
+    process_noise_speed_ = declare_parameter<double>("process_noise_speed", 0.2);
+    process_noise_acceleration_ = declare_parameter<double>("process_noise_acceleration", 1.0);
+    gps_speed_measurement_noise_ = declare_parameter<double>("gps_speed_measurement_noise", 0.5);
+    imu_acceleration_measurement_noise_ = declare_parameter<double>("imu_acceleration_measurement_noise", 0.2);
 
     publish_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     diagnostics_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -132,7 +137,10 @@ private:
     std::lock_guard<std::mutex> lock(mutex_);
     ++imu_laser_sync_count_;
     last_sync_time_ = now();
-    acceleration_ = static_cast<float>(imu->linear_acceleration.x);
+    const double raw_acceleration = imu->linear_acceleration.x;
+    update_motion_filter_with_imu(*imu, raw_acceleration);
+    acceleration_ = enable_kalman_filter_ ? static_cast<float>(kf_acceleration_) :
+      static_cast<float>(raw_acceleration);
     quaternion_to_rpy(
       imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w,
       roll_, pitch_, yaw_);
@@ -160,7 +168,15 @@ private:
         const double d_lat = (msg->latitude - last_lat_) * 111320.0;
         const double d_lon = (msg->longitude - last_lon_) * 111320.0 *
           std::cos(msg->latitude * 3.14159265358979323846 / 180.0);
-        speed_ = static_cast<float>(std::sqrt(d_lat * d_lat + d_lon * d_lon) / dt);
+        const double gps_speed = std::sqrt(d_lat * d_lat + d_lon * d_lon) / dt;
+        raw_gps_speed_ = gps_speed;
+        if (enable_kalman_filter_) {
+          update_motion_filter_with_gps(gps_speed);
+          speed_ = static_cast<float>(kf_speed_);
+          acceleration_ = static_cast<float>(kf_acceleration_);
+        } else {
+          speed_ = static_cast<float>(gps_speed);
+        }
       }
     }
 
@@ -178,6 +194,99 @@ private:
     last_coupler_stamp_ = msg->header.stamp;
     last_coupler_receive_time_ = now();
     has_coupler_ = true;
+  }
+
+  void predict_motion_filter(const double dt)
+  {
+    if (dt <= 0.0) {
+      return;
+    }
+
+    kf_speed_ += kf_acceleration_ * dt;
+
+    const double p00 = kf_p00_ + dt * (kf_p10_ + kf_p01_) + dt * dt * kf_p11_ +
+      process_noise_speed_ * dt;
+    const double p01 = kf_p01_ + dt * kf_p11_;
+    const double p10 = kf_p10_ + dt * kf_p11_;
+    const double p11 = kf_p11_ + process_noise_acceleration_ * dt;
+    kf_p00_ = p00;
+    kf_p01_ = p01;
+    kf_p10_ = p10;
+    kf_p11_ = p11;
+  }
+
+  void update_motion_filter_with_imu(
+    const sensor_msgs::msg::Imu & imu,
+    const double measured_acceleration)
+  {
+    if (!enable_kalman_filter_) {
+      return;
+    }
+
+    const rclcpp::Time stamp(imu.header.stamp);
+    if (!kf_initialized_) {
+      kf_initialized_ = true;
+      kf_acceleration_ = measured_acceleration;
+      last_filter_stamp_ = stamp;
+    } else {
+      double dt = (stamp - last_filter_stamp_).seconds();
+      if (dt <= 0.0 || dt > 1.0) {
+        dt = 1.0 / output_rate_hz_;
+      }
+      predict_motion_filter(dt);
+      last_filter_stamp_ = stamp;
+    }
+
+    const double innovation = measured_acceleration - kf_acceleration_;
+    const double s = kf_p11_ + imu_acceleration_measurement_noise_;
+    if (s <= 0.0) {
+      return;
+    }
+    const double k0 = kf_p01_ / s;
+    const double k1 = kf_p11_ / s;
+    kf_speed_ += k0 * innovation;
+    kf_acceleration_ += k1 * innovation;
+
+    const double p00 = kf_p00_ - k0 * kf_p10_;
+    const double p01 = kf_p01_ - k0 * kf_p11_;
+    const double p10 = kf_p10_ - k1 * kf_p10_;
+    const double p11 = kf_p11_ - k1 * kf_p11_;
+    kf_p00_ = p00;
+    kf_p01_ = p01;
+    kf_p10_ = p10;
+    kf_p11_ = p11;
+    ++kf_imu_update_count_;
+  }
+
+  void update_motion_filter_with_gps(const double measured_speed)
+  {
+    if (!enable_kalman_filter_) {
+      return;
+    }
+    if (!kf_initialized_) {
+      kf_initialized_ = true;
+      kf_speed_ = measured_speed;
+    }
+
+    const double innovation = measured_speed - kf_speed_;
+    const double s = kf_p00_ + gps_speed_measurement_noise_;
+    if (s <= 0.0) {
+      return;
+    }
+    const double k0 = kf_p00_ / s;
+    const double k1 = kf_p10_ / s;
+    kf_speed_ += k0 * innovation;
+    kf_acceleration_ += k1 * innovation;
+
+    const double p00 = kf_p00_ - k0 * kf_p00_;
+    const double p01 = kf_p01_ - k0 * kf_p01_;
+    const double p10 = kf_p10_ - k1 * kf_p00_;
+    const double p11 = kf_p11_ - k1 * kf_p01_;
+    kf_p00_ = p00;
+    kf_p01_ = p01;
+    kf_p10_ = p10;
+    kf_p11_ = p11;
+    ++kf_gps_update_count_;
   }
 
   double age_ms(const rclcpp::Time & stamp, const rclcpp::Time & current) const
@@ -267,6 +376,13 @@ private:
       add_key_value(status.values, "laser_age_ms", std::to_string(laser_age));
       add_key_value(status.values, "coupler_age_ms", std::to_string(coupler_age));
       add_key_value(status.values, "state_latency_ms", std::to_string(last_state_latency_ms_));
+      add_key_value(status.values, "kalman_enabled", enable_kalman_filter_ ? "true" : "false");
+      add_key_value(status.values, "kalman_initialized", kf_initialized_ ? "true" : "false");
+      add_key_value(status.values, "kalman_speed", std::to_string(kf_speed_));
+      add_key_value(status.values, "kalman_acceleration", std::to_string(kf_acceleration_));
+      add_key_value(status.values, "raw_gps_speed", std::to_string(raw_gps_speed_));
+      add_key_value(status.values, "kalman_imu_update_count", std::to_string(kf_imu_update_count_));
+      add_key_value(status.values, "kalman_gps_update_count", std::to_string(kf_gps_update_count_));
       add_key_value(
         status.values,
         "dropped_due_to_stale_sensor",
@@ -289,6 +405,11 @@ private:
   int gps_timeout_ms_ = 1000;
   int coupler_timeout_ms_ = 1000;
   int sensor_timeout_ms_ = 500;
+  bool enable_kalman_filter_ = true;
+  double process_noise_speed_ = 0.2;
+  double process_noise_acceleration_ = 1.0;
+  double gps_speed_measurement_noise_ = 0.5;
+  double imu_acceleration_measurement_noise_ = 0.2;
   float speed_ = 0.0F;
   float acceleration_ = 0.0F;
   double roll_ = 0.0;
@@ -301,10 +422,20 @@ private:
   bool has_gps_ = false;
   bool has_laser_ = false;
   bool has_coupler_ = false;
+  bool kf_initialized_ = false;
   uint64_t imu_laser_sync_count_ = 0;
   uint64_t published_count_ = 0;
   uint64_t dropped_due_to_stale_sensor_ = 0;
+  uint64_t kf_imu_update_count_ = 0;
+  uint64_t kf_gps_update_count_ = 0;
   double last_state_latency_ms_ = -1.0;
+  double raw_gps_speed_ = 0.0;
+  double kf_speed_ = 0.0;
+  double kf_acceleration_ = 0.0;
+  double kf_p00_ = 10.0;
+  double kf_p01_ = 0.0;
+  double kf_p10_ = 0.0;
+  double kf_p11_ = 10.0;
   std::string coupler_status_ = "unknown";
   rclcpp::Time last_imu_stamp_;
   rclcpp::Time last_laser_stamp_;
@@ -313,6 +444,7 @@ private:
   rclcpp::Time last_coupler_stamp_;
   rclcpp::Time last_coupler_receive_time_;
   rclcpp::Time last_sync_time_;
+  rclcpp::Time last_filter_stamp_;
   std::mutex mutex_;
   rclcpp::CallbackGroup::SharedPtr publish_group_;
   rclcpp::CallbackGroup::SharedPtr diagnostics_group_;

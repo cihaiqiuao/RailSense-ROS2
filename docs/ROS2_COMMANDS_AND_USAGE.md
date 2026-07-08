@@ -460,6 +460,11 @@ ros2 topic echo /diagnostics
 - `coupler_age_ms`：最近一次车钩检测结果距离当前的时间。
 - `state_latency_ms`：融合状态使用的最近传感器时间戳到当前发布时刻的延时。
 - `dropped_due_to_stale_sensor`：因为 IMU 或 Laser 数据过旧而被统计为 stale 的次数。
+- `kalman_enabled`：是否启用轻量 Kalman Filter。
+- `kalman_speed`：Kalman 当前估计的速度。
+- `kalman_acceleration`：Kalman 当前估计的加速度。
+- `kalman_imu_update_count`：IMU 加速度观测更新次数。
+- `kalman_gps_update_count`：GPS 速度观测校正次数。
 
 ## 14. 为什么 GPS 和 YOLO 不参与主链路强同步
 
@@ -471,6 +476,8 @@ ros2 topic echo /diagnostics
 - YOLO 推理延时不稳定，如果参与强同步，会让视觉卡顿影响 `/train_state`。
 
 因此 GPS 作为低频校正源，YOLO 车钩状态作为最近值缓存。这样 `/train_state` 可以稳定按 50Hz 发布，同时仍然保留 GPS 速度估计和车钩状态。
+
+Fusion 内部还维护一个轻量 Kalman Filter，状态量为 `speed` 和 `acceleration`。IMU 加速度用于高频预测和加速度观测更新，GPS 位置差分得到的速度用于低频校正。这样可以减少单次 GPS 抖动对 `/train_state.speed` 的影响，同时保持 IMU 高频响应。
 
 ## 15. rosbag 默认不录制原始相机图像
 

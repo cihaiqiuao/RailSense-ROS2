@@ -267,6 +267,12 @@ def test_fake_serial_drivers_publish_topics_and_diagnostics():
         assert "imu_laser_sync_count" in received["diagnostic_values"]["trainros_fusion"]
         assert "gps_age_ms" in received["diagnostic_values"]["trainros_fusion"]
         assert "state_latency_ms" in received["diagnostic_values"]["trainros_fusion"]
+        assert received["diagnostic_values"]["trainros_fusion"].get("kalman_enabled") == "true"
+        assert received["diagnostic_values"]["trainros_fusion"].get("kalman_initialized") == "true"
+        assert "kalman_speed" in received["diagnostic_values"]["trainros_fusion"]
+        assert "kalman_acceleration" in received["diagnostic_values"]["trainros_fusion"]
+        assert "kalman_imu_update_count" in received["diagnostic_values"]["trainros_fusion"]
+        assert "kalman_gps_update_count" in received["diagnostic_values"]["trainros_fusion"]
         assert "trainros_monitor" in received["diagnostics"]
         assert "imu_latency_ms" in received["diagnostic_values"]["trainros_monitor"]
         assert "laser_latency_ms" in received["diagnostic_values"]["trainros_monitor"]

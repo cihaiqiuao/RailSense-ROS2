@@ -62,6 +62,7 @@
 - 参数已拆分为 `sensors.yaml`、`sensors_fake_serial.yaml`、`fusion.yaml`、`logging.yaml`、`monitor.yaml`。
 - 已新增 fake serial 集成测试，覆盖伪串口到 ROS topic、Fusion `/train_state` 和 diagnostics 的端到端链路。
 - Fusion 已优化为 IMU/Laser 高频同步、GPS 低频校正、Coupler 最近值缓存；Monitor 已增加 Topic 延时 diagnostics。
+- Fusion 已加入轻量 Kalman Filter，状态量为 speed/acceleration，IMU 高频更新、GPS 低频校正。
 - Recorder 默认不录制 `/camera/image_raw`，可用 `record_camera:=true` 开启原始图像录制。
 - ROS2 Humble/colcon 已在 `Ubuntu-22.04` WSL 中可用；验证工作区使用 `/tmp/trainros_ws`。
 - 12 个包构建通过；parser gtest 和 fake serial 集成测试通过。

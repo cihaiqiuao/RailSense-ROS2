@@ -10,6 +10,14 @@ trainros_fusion:
     coupler_timeout_ms: 1000
     sensor_timeout_ms: 500
 
+    # 轻量 Kalman 融合：状态量为 speed 和 acceleration。
+    # IMU 提供高频加速度观测，GPS 提供低频速度校正。
+    enable_kalman_filter: true
+    process_noise_speed: 0.2
+    process_noise_acceleration: 1.0
+    gps_speed_measurement_noise: 0.5
+    imu_acceleration_measurement_noise: 0.2
+
 trainros_stability_evaluator:
   ros__parameters:
     warning_threshold: 70.0
