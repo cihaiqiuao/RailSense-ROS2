@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>trainros_bringup</name>
+  <version>0.1.0</version>
+  <description>TrainROS 启动、参数、RViz 和部署配置包。</description>
+  <maintainer email="todo@example.com">TrainROS</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>diagnostic_msgs</test_depend>
+  <test_depend>rclpy</test_depend>
+  <test_depend>sensor_msgs</test_depend>
+  <test_depend>trainros_interfaces</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

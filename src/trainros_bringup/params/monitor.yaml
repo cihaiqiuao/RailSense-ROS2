@@ -1,0 +1,5 @@
+# 系统监控参数。
+trainros_monitor:
+  ros__parameters:
+    publish_rate_hz: 1.0
+    topic_timeout_ms: 1000

@@ -1,0 +1,20 @@
+# 录制与业务日志参数。
+trainros_recorder:
+  ros__parameters:
+    default_output_uri: data/bags/trainros
+    record_camera: false
+    record_topics:
+      - /imu/data
+      - /gps/fix
+      - /laser/scan
+      - /coupler_detection
+      - /train_state
+      - /stability
+      - /system_status
+      - /diagnostics
+      - /log_status
+
+trainros_logger:
+  ros__parameters:
+    log_dir: /userdata/trainros_logs
+    status_period_ms: 1000

@@ -1,0 +1,9 @@
+# RK3588 MIPI Camera GStreamer pipeline 占位
+
+后续在真实硬件上确认 `/dev/videoX`、ISP 输出格式和编码格式后，再把可运行 pipeline 写到这里。
+
+目标链路：
+
+```text
+MIPI Camera -> RKISP/V4L2 -> GStreamer -> ROS2 Image Publisher
+```

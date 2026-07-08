@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>trainros_monitor</name>
+  <version>0.1.0</version>
+  <description>TrainROS 系统监控节点。</description>
+  <maintainer email="todo@example.com">TrainROS</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>trainros_interfaces</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

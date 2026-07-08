@@ -1,0 +1,41 @@
+# 真实硬件传感器与视觉模型参数。
+# Topic 名由节点代码固定保持不变：/imu/data、/gps/fix、/laser/scan、/camera/image_raw。
+trainros_imu_driver:
+  ros__parameters:
+    port: /dev/ttyUSB0
+    frame_id: imu_link
+    baud_rate: 115200
+    reconnect_ms: 1000
+    diagnostics_period_ms: 1000
+
+trainros_gps_driver:
+  ros__parameters:
+    port: /dev/ttyS9
+    frame_id: gps_link
+    baud_rate: 115200
+    reconnect_ms: 1000
+    no_fix_period_ms: 1000
+    diagnostics_period_ms: 1000
+
+trainros_laser_driver:
+  ros__parameters:
+    port: /dev/ttyS0
+    frame_id: laser_link
+    baud_rate: 115200
+    reconnect_ms: 1000
+    diagnostics_period_ms: 1000
+    range_min: 0.02
+    range_max: 100.0
+
+trainros_camera_driver:
+  ros__parameters:
+    frame_id: camera_link
+    pipeline: ""
+
+trainros_yolo_detection:
+  ros__parameters:
+    model_path: models/coupler_yolov8_pose_best.onnx
+    input_width: 640
+    input_height: 640
+    conf_threshold: 0.25
+    iou_threshold: 0.45

@@ -1,0 +1,29 @@
+# ROS2 构建输出
+build/
+install/
+log/
+
+# 本地数据、录制文件和运行产物
+data/bags/
+data/samples/
+*.db3
+*.mcap
+runs/
+outputs/
+
+# 模型产物
+# 当前 demo 模型较小，允许纳入仓库；大型模型仍建议放 Release 或外部存储。
+*.engine
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# IDE 和系统文件
+.idea/
+.vscode/
+.vs/
+Thumbs.db
+.DS_Store

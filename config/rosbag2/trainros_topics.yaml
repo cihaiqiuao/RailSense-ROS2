@@ -1,0 +1,10 @@
+topics:
+  - /imu/data
+  - /gps/fix
+  - /laser/scan
+  - /camera/image_raw
+  - /coupler_detection
+  - /train_state
+  - /stability
+  - /system_status
+  - /log_status

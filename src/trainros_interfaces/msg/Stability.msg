@@ -1,0 +1,9 @@
+std_msgs/Header header
+float32 score
+float32 rms_acceleration
+float32 peak_acceleration
+float32 psd_value
+float32 tsi
+bool warning
+bool alarm
+string level

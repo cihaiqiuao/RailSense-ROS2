@@ -1,0 +1,9 @@
+std_msgs/Header header
+float32 cpu_percent
+float32 memory_percent
+float32 io_percent
+float32 temperature_celsius
+float32 fps
+uint32 queue_depth
+float32 dds_delay_ms
+string status

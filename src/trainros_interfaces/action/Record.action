@@ -1,0 +1,7 @@
+bool record
+string output_uri
+---
+bool success
+string message
+---
+float32 current_duration_sec

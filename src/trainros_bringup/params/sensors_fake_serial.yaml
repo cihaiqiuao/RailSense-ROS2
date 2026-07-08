@@ -1,0 +1,28 @@
+# 本地伪串口回放参数。
+# 端口通常由 trainros_fake_serial.launch.py 的 imu_port/gps_port/laser_port 参数动态覆盖。
+trainros_imu_driver:
+  ros__parameters:
+    port: /tmp/trainros_imu_fake
+    frame_id: imu_link
+    baud_rate: 115200
+    reconnect_ms: 200
+    diagnostics_period_ms: 500
+
+trainros_gps_driver:
+  ros__parameters:
+    port: /tmp/trainros_gps_fake
+    frame_id: gps_link
+    baud_rate: 115200
+    reconnect_ms: 200
+    no_fix_period_ms: 1000
+    diagnostics_period_ms: 500
+
+trainros_laser_driver:
+  ros__parameters:
+    port: /tmp/trainros_laser_fake
+    frame_id: laser_link
+    baud_rate: 115200
+    reconnect_ms: 200
+    diagnostics_period_ms: 500
+    range_min: 0.02
+    range_max: 100.0
