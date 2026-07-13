@@ -15,7 +15,7 @@
 
 - 项目：TrainROS，基于 ROS2 Humble 的多源感知与列车运行状态评估平台。
 - 工作区：`E:\ros2\TrainROS`
-- 旧工程来源：`E:\毕业设计\03_代码工程`
+- 旧工程来源：本地 `legacy_project`（不纳入仓库）
 - 详情文件：`memory/projects/TrainROS.md`
 
 ## 详情索引
@@ -28,6 +28,7 @@
 - `memory/decisions/2026-07-08-stability-rms-psd-tsi.md`：平稳性 RMS、PSD、TSI 算法增强决策。
 - `memory/decisions/2026-07-08-layered-source-layout.md`：源码目录按职责分层重构决策。
 - `memory/decisions/2026-07-08-chinese-runtime-logs.md`：运行时日志中文化决策。
+- `memory/decisions/2026-07-08-test-quality-system.md`：ASan/UBSan、Fusion 单测、Logger/Recorder/launch/Monitor/视觉降级测试决策。
 - `docs/ARCHITECTURE.md`：Topic、QoS、节点职责和系统结构。
 - `docs/MIGRATION_PLAN.md`：旧工程迁移计划。
 - `docs/ROADMAP.md`：后续版本路线图。
@@ -42,7 +43,7 @@
 - 添加或解释 ROS2 包、节点、接口。
 - 迁移旧 Qt/Python/车钩识别代码。
 - 回答当前项目有哪些功能、哪些还没做。
-- 准备简历、毕业设计或面试表述。
+- 准备工程介绍、简历或面试表述。
 
 打开 `docs/MIGRATION_PLAN.md` 的情况：
 
@@ -73,4 +74,5 @@
 - Recorder 默认不录制 `/camera/image_raw`，可用 `record_camera:=true` 开启原始图像录制。
 - ROS2 Humble/colcon 已在 `Ubuntu-22.04` WSL 中可用；验证工作区使用 `/tmp/trainros_ws`。
 - 12 个包构建通过；parser gtest 和 fake serial 集成测试通过。
+- 测试体系已补强：普通测试和 Sanitizer 测试均为 41 项通过；覆盖 parser、Fusion Kalman、Stability、fake serial、Logger、Recorder、launch 参数、Monitor 延时和 Camera/YOLO 降级。
 - 下一步建议：真实硬件串口联调，然后再接 Camera/GStreamer、YOLO/ONNX、完整融合算法和 RViz。

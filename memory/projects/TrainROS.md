@@ -7,7 +7,7 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 ## 当前工作区
 
 - 新工作区：`E:\ros2\TrainROS`
-- 旧工程根目录：`E:\毕业设计\03_代码工程`
+- 旧工程根目录：本地 `legacy_project`（不纳入仓库）
 - 当前阶段：基础软件闭环已形成，真实硬件和视觉推理尚未接入。
 - 使用说明：`docs/ROS2_COMMANDS_AND_USAGE.md` 记录构建、无硬件运行、Topic/Node/Param/Action、Logger 和 rosbag2 命令。
 - 模型转换说明：`docs/MODEL_CONVERSION.md` 记录车钩 YOLOv8-Pose `.pt` 到 ONNX 的转换结果。
@@ -44,6 +44,8 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 - Logger 冒烟验证：模拟 diagnostics/stability 后，JSONL 记录串口打开、重连、丢帧和平稳性 alarm。
 - Recorder 冒烟验证：Action 启动并取消 `ros2 bag record`，生成 `.db3` 和 `metadata.yaml`。
 - `trainros_system.launch.py` 和 `trainros_fake_serial.launch.py` 已通过 5 秒启动冒烟验证。
+- 测试体系补强后，普通测试覆盖 parser、Fusion Kalman、Stability、fake serial、Logger、Recorder、launch 参数、Monitor 延时和 Camera/YOLO 降级路径；`/tmp/trainros_ws` 结果为 41 tests，0 errors，0 failures，0 skipped。
+- Sanitizer Debug 构建已启用 `ENABLE_SANITIZER`，覆盖 C++ 节点和 gtest 目标；`/tmp/trainros_publish_asan_ws` 结果为 41 tests，0 errors，0 failures，0 skipped。
 
 ## 旧工程映射
 

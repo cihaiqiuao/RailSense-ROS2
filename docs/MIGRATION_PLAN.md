@@ -4,11 +4,11 @@
 
 | 源路径 | 迁移目标 | 说明 |
 | --- | --- | --- |
-| `E:\毕业设计\03_代码工程\imu_project_patch_files\serialworker.cpp` | `trainros_imu_driver`、`trainros_gps_driver`、`trainros_laser_driver`、`trainros_logger`、`trainros_monitor` | 包含 Qt 串口、重试计数、`/userdata` 日志、状态上报和传感器缓冲逻辑。迁移时只提取解析与可靠性行为，不照搬 Qt 事件循环架构。 |
-| `E:\毕业设计\03_代码工程\imu_project_patch_files\protocol_processor.*` | 传感器 driver 解析辅助代码 | 迁移前先审查帧解析和 CRC，再抽成普通 C++ helper。 |
-| `E:\毕业设计\03_代码工程\车钩识别模型代码_整理版\src\inference` | `trainros_yolo_detection` | 将离线图片/视频推理改造成 ROS2 图像回调流水线。 |
-| `E:\毕业设计\03_代码工程\车钩识别模型代码_整理版\models` | `src/perception/trainros_yolo_detection/models` | 默认不把大模型文件纳入 git，除非后续明确需要。 |
-| `E:\毕业设计\03_代码工程\python项目\PythonProject4\数据处理` | `trainros_stability_evaluator` 和离线工具 | 迁移前先确认脚本价值，其中有些文件可能只是 PyCharm/demo 残留。 |
+| `legacy_project/imu_project_patch_files/serialworker.cpp` | `trainros_imu_driver`、`trainros_gps_driver`、`trainros_laser_driver`、`trainros_logger`、`trainros_monitor` | 包含 Qt 串口、重试计数、`/userdata` 日志、状态上报和传感器缓冲逻辑。迁移时只提取解析与可靠性行为，不照搬 Qt 事件循环架构。 |
+| `legacy_project/imu_project_patch_files/protocol_processor.*` | 传感器 driver 解析辅助代码 | 迁移前先审查帧解析和 CRC，再抽成普通 C++ helper。 |
+| `legacy_project/coupler_detection/src/inference` | `trainros_yolo_detection` | 将离线图片/视频推理改造成 ROS2 图像回调流水线。 |
+| `legacy_project/coupler_detection/models` | `src/perception/trainros_yolo_detection/models` | 默认不把大模型文件纳入 git，除非后续明确需要。 |
+| `legacy_project/data_processing` | `trainros_stability_evaluator` 和离线工具 | 迁移前先确认脚本价值，其中有些文件可能只是 PyCharm/demo 残留。 |
 
 ## 增量里程碑
 

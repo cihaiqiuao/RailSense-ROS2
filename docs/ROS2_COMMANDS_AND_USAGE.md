@@ -426,7 +426,7 @@ rosbag2 录制的作用是把运行时 Topic 数据保存下来，形成可回�
 
    bag 里保存了多个 Topic 的时间戳和数据内容，可以检查 IMU/GPS/Laser 是否频率正常、是否丢数据、是否和 Fusion 同步窗口匹配。
 
-4. **毕业设计和演示**
+4. **离线演示和系统验收**
 
    没有硬件或现场环境不稳定时，可以直接播放 bag，展示系统从传感器数据到融合、评估、日志的完整链路。
 
@@ -568,3 +568,54 @@ ros2 run trainros_recorder recorder_node --ros-args -p record_camera:=true
 - `imu_latency_ms` 或 `laser_latency_ms` 持续升高，说明传感器数据在 DDS 或回调队列里积压。
 - `gps_age_ms` 持续超过 `gps_timeout_ms`，说明 GPS 数据缺失或频率异常。
 - 录制 rosbag 后系统明显变慢，优先检查是否录制了 `/camera/image_raw`。
+
+## 17. 工程质量测试与 Sanitizer 命令
+
+完整普通构建和测试：
+
+```bash
+cd /tmp/trainros_ws
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+colcon test --event-handlers console_direct+
+colcon test-result --verbose
+```
+
+当前测试体系覆盖：
+
+- IMU/GPS/Laser parser gtest：验证协议帧解析、帧头错误、校验错误和短帧丢弃。
+- Fusion gtest：验证三维 Kalman Filter 的 IMU 加速度更新、GPS 速度校正、Laser 距离校正和 GPS 缺失预测。
+- Stability gtest：验证窗口 RMS、峰值、简化 PSD、TSI、Score 和动态参数判断。
+- fake serial 集成测试：验证伪串口到 `/imu/data`、`/gps/fix`、`/laser/scan`、`/train_state`、`/stability` 和 `/diagnostics` 的端到端链路。
+- Logger pytest：验证 `serial_opened`、`serial_closed`、`serial_reconnect`、`parser_drop_frame`、`gps_no_fix`、`stability_warning`、`stability_alarm` 会写入 JSONL。
+- Recorder pytest：验证 `/record` Action 能启动、收到 feedback，并能取消 rosbag2 录制。
+- Launch/参数 pytest：验证 launch 文件存在，关键 YAML 参数没有在重构中丢失。
+- Monitor pytest：验证 `/diagnostics` 输出 `imu_latency_ms`、`gps_latency_ms`、`laser_latency_ms`、`train_state_latency_ms`，并在 Topic 超时时进入 WARN。
+- Camera/YOLO 降级 pytest：验证本地视频或模型不存在时节点不崩溃，视觉检测降级为 `unknown` 或空图像输出。
+
+Sanitizer 构建建议单独放到 WSL ext4 临时目录：
+
+```bash
+rm -rf /tmp/trainros_asan_ws
+mkdir -p /tmp/trainros_asan_ws/src
+cp -a /mnt/e/ros2/TrainROS/src/. /tmp/trainros_asan_ws/src/
+
+cd /tmp/trainros_asan_ws
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install \
+  --cmake-args -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON
+source install/setup.bash
+
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 \
+UBSAN_OPTIONS=halt_on_error=1 \
+colcon test --event-handlers console_direct+
+
+ASAN_OPTIONS=detect_leaks=0 colcon test-result --verbose
+```
+
+说明：
+
+- `ENABLE_SANITIZER=ON` 会给 C++ 节点和 gtest 目标加上 AddressSanitizer 与 UndefinedBehaviorSanitizer。
+- `detect_leaks=0` 是为了避免 ROS2/DDS 第三方库在进程退出阶段产生无关 leak 噪声；越界访问、use-after-free 和未定义行为仍会触发失败。
+- 当前没有默认启用 TSan，因为 ROS2/DDS 内部线程较多，ThreadSanitizer 容易产生大量第三方噪声，后续可以单独做小范围线程测试。
