@@ -7,7 +7,7 @@ TrainROS 是对现有列车平稳性与车钩识别工作的 ROS2 Humble 工程�
 ## 当前工作区
 
 - 新工作区：`E:\ros2\TrainROS`
-- 旧工程根目录：`E:\毕业设计\03_代码工程`
+- 旧工程根目录：本地 `legacy_project`（不纳入仓库）
 - 当前阶段：基础软件闭环已形成，真实硬件和视觉推理尚未接入。
 - 使用说明：`docs/ROS2_COMMANDS_AND_USAGE.md` 记录构建、无硬件运行、Topic/Node/Param/Action、Logger 和 rosbag2 命令。
 - 模型转换说明：`docs/MODEL_CONVERSION.md` 记录车钩 YOLOv8-Pose `.pt` 到 ONNX 的转换结果。

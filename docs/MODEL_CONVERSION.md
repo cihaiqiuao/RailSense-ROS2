@@ -7,7 +7,7 @@
 ## 源模型
 
 ```text
-E:\毕业设计\03_代码工程\车钩识别模型代码_整理版\models\trained\coupler_yolov8_pose_best.pt
+legacy_project/coupler_detection/models/trained/coupler_yolov8_pose_best.pt
 ```
 
 ## 输出模型

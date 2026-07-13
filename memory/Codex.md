@@ -15,7 +15,7 @@
 
 - 项目：TrainROS，基于 ROS2 Humble 的多源感知与列车运行状态评估平台。
 - 工作区：`E:\ros2\TrainROS`
-- 旧工程来源：`E:\毕业设计\03_代码工程`
+- 旧工程来源：本地 `legacy_project`（不纳入仓库）
 - 详情文件：`memory/projects/TrainROS.md`
 
 ## 详情索引
@@ -42,7 +42,7 @@
 - 添加或解释 ROS2 包、节点、接口。
 - 迁移旧 Qt/Python/车钩识别代码。
 - 回答当前项目有哪些功能、哪些还没做。
-- 准备简历、毕业设计或面试表述。
+- 准备工程介绍、简历或面试表述。
 
 打开 `docs/MIGRATION_PLAN.md` 的情况：
 

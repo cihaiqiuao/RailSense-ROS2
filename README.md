@@ -1,81 +1,145 @@
 # RailSense-ROS2
 
-RailSense-ROS2（工程内部包名 TrainROS）是一个基于 ROS2 Humble 的多源感知与列车运行状态评估平台。项目从旧工程 `E:\毕业设计\03_代码工程` 逐步迁移，但不修改旧工程目录。
+RailSense-ROS2 是一个基于 ROS 2 Humble 的列车多源感知与运行状态评估系统，工程内部包名统一使用 `trainros_*`。系统面向 Linux 边缘计算平台，将 IMU、GPS、激光测距和视觉检测接入同一 ROS 2 数据链路，并提供状态融合、平稳性评估、运行诊断、事件日志和 rosbag2 数据录制能力。
 
-## 工程结构
+## 系统架构
 
 ```text
-TrainROS/
-  src/
-    interfaces/                   # 自定义消息、Action 和接口包
-    drivers/                      # IMU/GPS/Laser/Camera 驱动包
-    perception/                   # YOLO 等视觉感知包
-    estimation/                   # Fusion 和 Stability 状态估计包
-    runtime/                      # Recorder/Logger/Monitor 运行支撑包
-    bringup/                      # launch、参数、RViz、部署配置
-  docs/                           # 架构、迁移计划、路线图
-  tools/replay/                   # 伪串口回放和辅助工具
-  config/                         # rosbag2、RViz 等根级运行配置
-  data/                           # 本地 bag、样例数据和临时数据
-  memory/                         # Engramory 风格项目记忆
+IMU / GPS / Laser / Camera
+           |
+           v
+  ROS 2 Drivers + Diagnostics
+           |
+           +----------> YOLO Detection
+           |                   |
+           v                   v
+       Sensor Fusion <---------+
+           |
+           v
+   Train State Estimation
+           |
+           v
+   Stability Evaluation
+           |
+           +----------> Monitor / Logger / Recorder
 ```
 
-## 当前功能
+源码按职责分为六层：
 
-- 已建立 12 个 ROS2 包和基础节点入口。
-- `trainros_interfaces` 已定义 `Coupler.msg`、`TrainState.msg`、`Stability.msg`、`SystemStatus.msg`、`Record.action`。
-- IMU driver 已迁移 33 字节帧解析、`0x55 0x51/52/53` 校验、加速度/角速度/姿态换算和串口重连。
-- GPS driver 已迁移 `$GNRMC/$GPRMC` 解析、经纬度换算、fix/no-fix 发布和串口重连。
-- Laser driver 已迁移 `0xAA` 12 字节距离帧解析和米制距离发布。
-- IMU/GPS/Laser driver 统一发布 `/diagnostics`，包含串口状态、端口、有效帧数、丢弃帧数、重连次数、最近接收时间和最近错误。
-- Fusion 节点使用 `message_filters::ApproximateTime` 同步 IMU/Laser，GPS 作为低频速度校正源，车钩检测作为最近状态缓存，并用三维 Kalman Filter 融合 position/speed/acceleration 后以 50 Hz 发布 `/train_state`；其中 IMU 更新加速度，GPS 更新速度，Laser 更新距离/位置。
-- Stability 节点实现滑动窗口 RMS、峰值加速度、简化 PSD、TSI 评分和 warning/alarm 阈值，发布 `/stability` 与 `/diagnostics`。
-- Logger 订阅 `/diagnostics` 和 `/stability`，把串口开闭、重连、parser 丢帧、GPS no-fix、Fusion/Monitor 诊断变化和平稳性 warning/alarm 写入业务 JSONL，并发布 `/log_status`。
-- Recorder 通过 `Record.action` 真正启动 `ros2 bag record` 子进程，支持 Action 取消时停止 rosbag2 并落盘。
-
-## 参数和启动
-
-参数已按职责拆分：
-
-- `src/bringup/trainros_bringup/params/sensors.yaml`：真实硬件传感器、Camera、YOLO 参数。
-- `src/bringup/trainros_bringup/params/sensors_fake_serial.yaml`：伪串口传感器参数。
-- `src/bringup/trainros_bringup/params/fusion.yaml`：融合和平稳性参数，包含同步窗口、传感器超时和 Kalman 噪声参数。
-- `src/bringup/trainros_bringup/params/logging.yaml`：录制 topic 列表、bag 输出路径和日志参数。
-- `src/bringup/trainros_bringup/params/monitor.yaml`：系统监控参数。
-
-启动文件：
-
-```bash
-ros2 launch trainros_bringup trainros_system.launch.py
-ros2 launch trainros_bringup trainros_fake_serial.launch.py imu_port:=/dev/pts/1 gps_port:=/dev/pts/2 laser_port:=/dev/pts/3
+```text
+src/
+  interfaces/   # 自定义 Message 和 Action
+  drivers/      # IMU、GPS、Laser、Camera 数据接入
+  perception/   # YOLO 视觉检测
+  estimation/   # 多传感器融合与平稳性评估
+  runtime/      # 监控、业务日志与 rosbag2 录制
+  bringup/      # Launch、参数和部署配置
 ```
 
-## 构建和测试
+## 核心能力
 
-常用 ROS2 命令、无硬件运行流程和录制功能说明见：
+- 传感器接入：支持 IMU 33 字节协议、GPS NMEA RMC 和激光测距协议解析，包含串口重连、帧统计与异常诊断。
+- 多源融合：使用 `message_filters::ApproximateTime` 同步 IMU/Laser，以 GPS 作为低频校正源、视觉结果作为最近值缓存，通过轻量 Kalman Filter 估计位置、速度和加速度。
+- 平稳性评估：基于滑动窗口计算 RMS、峰值、频带 PSD 和 TSI，输出评分及 `normal`、`warning`、`alarm` 状态。
+- 视觉链路：支持本地视频发布到 `/camera/image_raw`，并通过 ONNX Runtime 节点输出 `/coupler_detection`；依赖或模型不可用时进入可观测的降级状态。
+- 可观测性：传感器、融合、评估和系统监控统一发布 `/diagnostics`，覆盖串口状态、丢帧、数据新鲜度和链路延时。
+- 数据闭环：Logger 将关键运行事件写入 JSONL；Recorder 通过 `Record.action` 管理 `ros2 bag record` 子进程，实现数据录制、取消和落盘。
 
-- `docs/ROS2_COMMANDS_AND_USAGE.md`
+## ROS 2 包
 
-Windows `E:` 盘通过 drvfs 挂载时，`--symlink-install` 可能受符号链接权限影响。当前验证使用 WSL ext4 临时工作区 `/tmp/trainros_ws`。
+| 分层 | 包 | 职责 |
+| --- | --- | --- |
+| Interfaces | `trainros_interfaces` | 定义 `Coupler`、`TrainState`、`Stability`、`SystemStatus` 和 `Record.action` |
+| Drivers | `trainros_imu_driver` | IMU 串口读取、协议解析与诊断 |
+| Drivers | `trainros_gps_driver` | GPS NMEA 解析、定位状态与诊断 |
+| Drivers | `trainros_laser_driver` | 激光测距解析、距离发布与诊断 |
+| Drivers | `trainros_camera_driver` | Camera 节点和本地视频 Topic 发布 |
+| Perception | `trainros_yolo_detection` | ONNX 视觉推理与车钩状态发布 |
+| Estimation | `trainros_fusion` | 多源同步、Kalman 状态融合与时延统计 |
+| Estimation | `trainros_stability_evaluator` | RMS、PSD、TSI 和告警等级计算 |
+| Runtime | `trainros_monitor` | Topic 存活状态与端到端延时监控 |
+| Runtime | `trainros_logger` | 结构化业务事件日志 |
+| Runtime | `trainros_recorder` | rosbag2 录制 Action 服务 |
+| Bringup | `trainros_bringup` | 系统 Launch 与分层参数配置 |
+
+## 主要 Topic 与接口
+
+| 名称 | 类型 | 用途 |
+| --- | --- | --- |
+| `/imu/data` | `sensor_msgs/msg/Imu` | IMU 数据 |
+| `/gps/fix` | `sensor_msgs/msg/NavSatFix` | GPS 定位数据 |
+| `/laser/scan` | `sensor_msgs/msg/LaserScan` | 激光测距数据 |
+| `/camera/image_raw` | `sensor_msgs/msg/Image` | 相机或视频图像 |
+| `/coupler_detection` | `trainros_interfaces/msg/Coupler` | 视觉检测结果 |
+| `/train_state` | `trainros_interfaces/msg/TrainState` | 融合后的运行状态 |
+| `/stability` | `trainros_interfaces/msg/Stability` | 平稳性指标与等级 |
+| `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | 全链路运行诊断 |
+| `/record` | `trainros_interfaces/action/Record` | rosbag2 录制控制 |
+
+## 构建
+
+开发与验证环境为 Ubuntu 22.04、ROS 2 Humble 和 colcon。建议在 Linux 原生文件系统中构建；WSL 下直接在 drvfs 挂载盘使用 `--symlink-install` 可能受到符号链接权限影响。
 
 ```bash
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install
-colcon test --packages-select trainros_imu_driver trainros_gps_driver trainros_laser_driver trainros_bringup --event-handlers console_direct+
+source install/setup.bash
 ```
 
-当前验证结果：
+## 启动
 
-- `colcon build --symlink-install`：12 个包全部通过。
-- IMU/GPS/Laser parser gtest：全部通过。
-- fake serial 集成测试：自动创建三路 PTY，启动三个 driver、Fusion、Stability 和 Monitor，验证 `/imu/data`、`/gps/fix`、`/laser/scan`、`/train_state`、`/stability`、三维 Kalman diagnostics、平稳性 diagnostics 和延时 diagnostics 均有有效输出。
-- Logger 冒烟验证：发布模拟 diagnostics/stability 后，JSONL 中出现 `serial_opened`、`serial_reconnect`、`parser_drop_frame`、`stability_alarm`。
-- Recorder 冒烟验证：Action 启动 `ros2 bag record`，取消后生成 `metadata.yaml` 和 `.db3` bag 文件。
-- `trainros_system.launch.py` 和 `trainros_fake_serial.launch.py` 均通过 5 秒启动冒烟验证。
+启动完整系统：
 
-## 后续任务
+```bash
+ros2 launch trainros_bringup trainros_system.launch.py
+```
 
-- 接真实 RK3588/Ubuntu 串口硬件联调。
-- 接入 Camera/GStreamer 和 image_transport。
-- 接入 YOLO/ONNX Runtime/TensorRT。
-- 将当前三维 Kalman 扩展为更完整的 EKF/多传感器状态估计，并完善 PSD/TSI 和 RViz 可视化。
+无硬件环境可使用三路 PTY 伪串口启动端到端链路：
+
+```bash
+ros2 launch trainros_bringup trainros_fake_serial.launch.py \
+  imu_port:=/dev/pts/1 \
+  gps_port:=/dev/pts/2 \
+  laser_port:=/dev/pts/3
+```
+
+使用本地视频验证 Camera 到 YOLO 的链路：
+
+```bash
+ros2 launch trainros_bringup trainros_video_yolo.launch.py \
+  video_path:=/path/to/video.mp4
+```
+
+更完整的构建、Topic、参数、日志和 rosbag2 操作见 [ROS2 命令与使用说明](docs/ROS2_COMMANDS_AND_USAGE.md)，系统边界与 QoS 设计见 [架构说明](docs/ARCHITECTURE.md)。
+
+## 配置
+
+运行参数集中在 `src/bringup/trainros_bringup/params/`：
+
+- `sensors.yaml`：真实传感器、Camera 和 YOLO 参数。
+- `sensors_fake_serial.yaml`：伪串口测试参数。
+- `fusion.yaml`：同步窗口、超时阈值、Kalman 与平稳性参数。
+- `logging.yaml`：业务日志、rosbag2 Topic 和输出路径。
+- `monitor.yaml`：节点存活与延时监控参数。
+
+## 测试与验证
+
+```bash
+colcon test --event-handlers console_direct+
+colcon test-result --verbose
+```
+
+当前自动化测试覆盖：
+
+- IMU、GPS、Laser 协议解析单元测试。
+- 伪串口到 ROS 2 Topic、Fusion、Stability 和 Diagnostics 的端到端测试。
+- Kalman 状态更新与平稳性指标计算测试。
+- Logger、Recorder、Monitor 和 Launch 参数测试。
+- Camera/YOLO 缺少视频、模型或运行依赖时的降级路径。
+- C++ 节点的 AddressSanitizer 与 UndefinedBehaviorSanitizer 验证入口。
+
+## 工程边界
+
+- 已完成 12 个 ROS 2 包的构建及无硬件端到端验证。
+- 串口协议、融合、评估、监控、日志和录制链路已有自动化测试覆盖。
+- 真实列车传感器、RK3588 平台 Camera/GStreamer、NPU/TensorRT 加速和现场参数标定仍需结合目标硬件验证。

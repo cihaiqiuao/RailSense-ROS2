@@ -11,8 +11,8 @@ IMU 串口数据 ROS2 driver 包。
 
 迁移来源：
 
-- `E:\毕业设计\03_代码工程\imu_project_patch_files\serialworker.cpp`
-- `E:\毕业设计\03_代码工程\imu_project_patch_files\protocol_processor.*`
+- `legacy_project/imu_project_patch_files/serialworker.cpp`
+- `legacy_project/imu_project_patch_files/protocol_processor.*`
 
 初始范围：
 
