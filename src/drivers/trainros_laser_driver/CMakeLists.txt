@@ -6,6 +6,15 @@ find_package(diagnostic_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
+option(ENABLE_SANITIZER "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+
+function(trainros_enable_sanitizer target)
+  if(ENABLE_SANITIZER)
+    target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+  endif()
+endfunction()
+
 add_executable(laser_driver_node src/laser_driver_node.cpp)
 target_compile_features(laser_driver_node PUBLIC cxx_std_17)
 target_include_directories(laser_driver_node PUBLIC
@@ -13,6 +22,7 @@ target_include_directories(laser_driver_node PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(laser_driver_node diagnostic_msgs rclcpp sensor_msgs)
+trainros_enable_sanitizer(laser_driver_node)
 
 install(TARGETS laser_driver_node DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include)
@@ -25,6 +35,7 @@ if(BUILD_TESTING)
   target_include_directories(test_laser_parser PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   )
+  trainros_enable_sanitizer(test_laser_parser)
 endif()
 
 ament_package()

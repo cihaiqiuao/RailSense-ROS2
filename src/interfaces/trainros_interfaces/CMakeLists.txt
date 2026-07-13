@@ -6,6 +6,8 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
+option(ENABLE_SANITIZER "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Coupler.msg"
   "msg/TrainState.msg"

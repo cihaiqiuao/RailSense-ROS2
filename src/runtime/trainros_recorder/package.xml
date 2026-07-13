@@ -11,6 +11,8 @@
   <depend>rclcpp_action</depend>
   <depend>trainros_interfaces</depend>
   <exec_depend>rosbag2_transport</exec_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>rclpy</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
